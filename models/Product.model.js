@@ -13,8 +13,7 @@ const productSchema = new mongoose.Schema({
   slug: {
     type: String,
     unique: true,
-    lowercase: true,
-    sparse: true  // Allow multiple null/undefined values but enforce uniqueness for non-null values
+    lowercase: true
   },
   description: {
     type: String,
@@ -120,46 +119,10 @@ const productSchema = new mongoose.Schema({
 });
 
 // Generate slug before saving
-productSchema.pre('save', async function(next) {
-  // Generate slug if slug is empty or not set (regardless of whether name changed)
-  if (!this.slug || this.slug.trim() === '') {
-    if (this.name && this.name.trim()) {
-      // Create slug from name - support both Arabic and English
-      let slug = this.name
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')           // Replace spaces with hyphens
-        .replace(/[^\u0621-\u064Aa-z0-9-]/g, '') // Keep Arabic, English letters, numbers, and hyphens
-        .replace(/-+/g, '-')             // Replace multiple hyphens with single hyphen
-        .replace(/^-|-$/g, '');          // Remove leading/trailing hyphens
-      
-      // If slug is still empty (e.g., only special characters), use fallback
-      if (!slug || slug.trim() === '') {
-        slug = `product-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-      }
-      
-      // Ensure slug is unique - if duplicate exists, append number
-      let finalSlug = slug;
-      let counter = 1;
-      const Product = this.constructor;
-      
-      while (await Product.findOne({ slug: finalSlug, _id: { $ne: this._id } })) {
-        finalSlug = `${slug}-${counter}`;
-        counter++;
-      }
-      
-      this.slug = finalSlug;
-    } else {
-      // Fallback if name is empty (shouldn't happen due to validation)
-      this.slug = `product-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    }
+productSchema.pre('save', function(next) {
+  if (this.isModified('name') && !this.slug) {
+    this.slug = this.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\u0621-\u064A0-9-]/g, '');
   }
-  
-  // Final safety check: ensure slug is never empty
-  if (!this.slug || this.slug.trim() === '') {
-    this.slug = `product-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-  }
-  
   next();
 });
 

@@ -97,14 +97,6 @@ router.get('/', [
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    // Validate MongoDB ObjectId format
-    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        success: false,
-        message: 'معرف المنتج غير صحيح'
-      });
-    }
-
     const product = await Product.findById(req.params.id)
       .populate('category', 'name slug')
       .populate({
@@ -115,13 +107,6 @@ router.get('/:id', async (req, res) => {
         },
         options: { sort: { createdAt: -1 }, limit: 10 }
       });
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'المنتج غير موجود'
-      });
-    }
 
     if (!product || !product.isActive) {
       return res.status(404).json({
@@ -187,9 +172,6 @@ router.post('/', protect, authorize('admin'), uploadMultiple.array('images', 10)
       isPrimary: index === 0
     })) || [];
 
-    console.log('📸 Files received:', req.files?.length || 0);
-    console.log('📸 Images array:', images);
-
     // Check if images are provided
     if (images.length === 0) {
       return res.status(400).json({
@@ -243,9 +225,6 @@ router.post('/', protect, authorize('admin'), uploadMultiple.array('images', 10)
       isActive: req.body.isActive !== undefined ? (req.body.isActive === 'true' || req.body.isActive === true || req.body.isActive === '1') : true,
       isFeatured: req.body.isFeatured !== undefined ? (req.body.isFeatured === 'true' || req.body.isFeatured === true || req.body.isFeatured === '1') : false
     });
-
-    console.log('✅ Product created successfully:', product.name);
-    console.log('📸 Product images:', product.images);
 
     res.status(201).json({
       success: true,

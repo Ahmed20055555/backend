@@ -20,9 +20,9 @@ const storage = multer.diskStorage({
     // Different folders for different file types
     if (file.fieldname === 'avatar') {
       uploadPath = path.join(uploadDir, 'avatars');
-    } else if (file.fieldname === 'product' || file.fieldname === 'images') {
+    } else if (file.fieldname === 'product') {
       uploadPath = path.join(uploadDir, 'products');
-    } else if (file.fieldname === 'category' || file.fieldname === 'image') {
+    } else if (file.fieldname === 'category') {
       uploadPath = path.join(uploadDir, 'categories');
     } else if (file.fieldname === 'review') {
       uploadPath = path.join(uploadDir, 'reviews');

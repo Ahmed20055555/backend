@@ -13,6 +13,7 @@ import categoryRoutes from './routes/category.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import contactRoutes from './routes/contact.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -56,6 +57,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

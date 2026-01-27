@@ -98,56 +98,23 @@ router.post('/', protect, [
       });
     }
 
-    const { items, shippingAddress, billingAddress, pricing, payment, notes, isTest } = req.body;
-
-    // Validate payment method
-    const validPaymentMethods = ['cash', 'card', 'bank_transfer', 'stripe'];
-    if (payment?.method && !validPaymentMethods.includes(payment.method)) {
-      return res.status(400).json({
-        success: false,
-        message: 'طريقة الدفع غير صحيحة'
-      });
-    }
-
-    // Validate bank transfer transaction ID if method is bank_transfer
-    if (payment?.method === 'bank_transfer' && !payment?.transactionId) {
-      return res.status(400).json({
-        success: false,
-        message: 'رقم المعاملة مطلوب للتحويل البنكي'
-      });
-    }
+    const { items, shippingAddress, billingAddress, pricing, payment, notes } = req.body;
 
     // Validate products and calculate totals
     let subtotal = 0;
     const orderItems = [];
 
     for (const item of items) {
-      if (!item.product) {
-        console.error('❌ Missing product ID in item:', item);
-        return res.status(400).json({
-          success: false,
-          message: 'معرف المنتج مفقود في أحد العناصر'
-        });
-      }
-
       const product = await Product.findById(item.product);
-      if (!product) {
-        console.error('❌ Product not found:', item.product);
+      if (!product || !product.isActive) {
         return res.status(400).json({
           success: false,
-          message: `المنتج غير موجود (ID: ${item.product})`
+          message: `المنتج ${item.name || product?.name} غير موجود أو غير متاح`
         });
       }
 
-      if (!product.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: `المنتج ${product.name} غير متاح حالياً`
-        });
-      }
-
-      // Check stock (skip in test mode)
-      if (!isTest && product.stock.trackInventory && product.stock.quantity < item.quantity) {
+      // Check stock
+      if (product.stock.trackInventory && product.stock.quantity < item.quantity) {
         return res.status(400).json({
           success: false,
           message: `الكمية المتاحة من ${product.name} غير كافية`
@@ -178,12 +145,6 @@ router.post('/', protect, [
     };
 
     // Create order
-    console.log('📝 Creating order with data:', {
-      itemsCount: orderItems.length,
-      isTest: isTest || false,
-      paymentMethod: payment?.method || 'cash'
-    });
-
     const order = await Order.create({
       user: req.user._id,
       items: orderItems,
@@ -192,15 +153,10 @@ router.post('/', protect, [
       pricing: finalPricing,
       payment: {
         method: payment?.method || 'cash',
-        status: 'pending',
-        ...(payment?.transactionId && { transactionId: payment.transactionId }),
-        ...(payment?.accountNumber && { accountNumber: payment.accountNumber })
+        status: 'pending'
       },
-      notes,
-      isTest: isTest || false
+      notes
     });
-
-    console.log('✅ Order created successfully:', order.orderNumber);
 
     // Update product stock
     for (const item of items) {
@@ -219,26 +175,14 @@ router.post('/', protect, [
 
     res.status(201).json({
       success: true,
-      message: isTest 
-        ? 'تم إنشاء الطلب التجريبي بنجاح (Test Mode)' 
-        : 'تم إنشاء الطلب بنجاح',
-      order: populatedOrder,
-      isTest: isTest || false
+      message: 'تم إنشاء الطلب بنجاح',
+      order: populatedOrder
     });
   } catch (error) {
-    console.error('❌ Order creation error:', error);
-    console.error('Error stack:', error.stack);
-    
-    // Return detailed error message
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({
+    res.status(500).json({
       success: false,
       message: 'خطأ في إنشاء الطلب',
-      error: error.message,
-      ...(process.env.NODE_ENV === 'development' && {
-        stack: error.stack,
-        details: error.toString()
-      })
+      error: error.message
     });
   }
 });

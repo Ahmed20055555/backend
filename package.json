@@ -9,7 +9,6 @@
     "start": "node server.js",
     "seed": "node seeders/index.js",
     "seed:admin": "node seeders/admin.seeder.js",
-    "fix:slugs": "node scripts/fix-product-slugs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
